@@ -20,6 +20,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Cache Docker image
+        id: cache-docker
+        uses: actions/cache@v4
+        with:
+          path: /tmp/postgres-image.tar
+          key: ${{ runner.os }}-docker-postgres-16-${{ hashFiles('**/ci.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-postgres-16-
+
+      - name: Load cached Docker image
+        if: steps.cache-docker.outputs.cache-hit == 'true'
+        run: |
+          docker load -i /tmp/postgres-image.tar
+          echo "Loaded cached postgres:16 image"
+
+      - name: Pull and save Docker image
+        if: steps.cache-docker.outputs.cache-hit != 'true'
+        run: |
+          docker pull postgres:16
+          docker save -o /tmp/postgres-image.tar postgres:16
+          echo "Pulled and saved postgres:16 image"
+
       - name: Start PostgreSQL container
         run: |
           docker run -d --name pgtest \
