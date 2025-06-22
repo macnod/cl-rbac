@@ -28,7 +28,7 @@ install-dependencies:
 	$(ROSWELL) install macnod/dc-ds
 	$(ROSWELL) install macnod/dc-dlist
 	$(ROSWELL) install macnod/dc-eclectic
-	${ROSWELL) install postmodern
+	$(ROSWELL) install postmodern
 	$(ROSWELL) install prove
 
 test:
