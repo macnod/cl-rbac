@@ -71,7 +71,7 @@ jobs:
             /roswell/etc/roswell
             ~/.roswell
             ~/.cache
-          key: ${{ runner.os }}-roswell-25
+          key: ${{ runner.os }}-roswell-26
 
       - name: Verify Roswell paths
         run: |
