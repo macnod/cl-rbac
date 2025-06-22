@@ -3,8 +3,6 @@ services:
     image: macnod/cl-rbac-test:latest
     volumes:
       - ../:/cl-rbac/
-    environment:
-      DATABASE_URL: "pgtest://cl-user:cl-user-password@pgtest:5432/"
     command: >
       ros run -- --load "/cl-rbac/tests/test-database.lisp"
     depends_on:

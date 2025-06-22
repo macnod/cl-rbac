@@ -6,14 +6,25 @@
 (require :dc-ds)
 (require :postmodern)
 
+(defparameter *host* nil)
+(defparameter *port* nil)
+
 (defun directory-exists-p (directory)
   "Check if the directory exists."
   (let ((path (probe-file directory)))
     (and path (uiop:directory-pathname-p path))))
 
 (if (directory-exists-p "/cl-rbac")
-  (pushnew (truename "/cl-rbac/") asdf:*central-registry* :test #'equal)
-  (pushnew (truename ".") asdf:*central-registry* :test #'equal))
+  (progn
+    (pushnew (truename "/cl-rbac/") asdf:*central-registry* :test #'equal)
+    (setf 
+      *host* "pgtest"
+      *port* 5432))
+  (progn
+    (pushnew (truename ".") asdf:*central-registry* :test #'equal)
+    (setf
+      *host* "127.0.0.1"
+      *port* 5433)))
 
 (asdf:load-system :cl-rbac)
 
@@ -28,8 +39,10 @@
 (in-package :test-database)
 
 (setf prove:*enable-colors* t)
+
 (defparameter *rbac* (make-instance 'a:rbac-pg
-                       :host "pgtest"
+                       :host cl-user::*host*
+                       :port cl-user::*port*
                        :password "cl-user-password"))
 (defparameter *macnod-id* (a:get-id *rbac* "users" "macnod"))
 (defparameter *macnod-email* (a:get-value *rbac* "users" "email" "username" "macnod"))
