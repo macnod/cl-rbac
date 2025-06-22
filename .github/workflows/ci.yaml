@@ -60,15 +60,15 @@ jobs:
 
       - name: Set up PATH
         run: |
-          echo "PATH=/roswell/bin:$PATH" >> $GITHUB_ENV
+          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
       - name: Cache Roswell
         id: cache-dependencies
         uses: actions/cache@v4
         with:
           path: |
-            /roswell/bin/ros
-            /roswell/etc/roswell
+            ~/.local/bin/ros
+            ~/.local/etc/roswell
             ~/.roswell
             ~/.cache
           key: ${{ runner.os }}-roswell-26
