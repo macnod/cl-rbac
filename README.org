@@ -1,4 +1,4 @@
-#+title CL-RBAC Documentation
+* CL-RBAC Documentation
 CL-RBAC is a Common Lisp implementation of a Role-Based Access Control (RBAC) system.
 
 * CL-RBAC/DATABASE
