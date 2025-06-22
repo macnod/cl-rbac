@@ -24,9 +24,9 @@ jobs:
         run: |
           docker run -d --name pgtest \
             -p 5433:5432 \
-            -p POSTGRES_USER="cl-user" \
-            -p POSTGRES_PASSWORD="cl-user-password" \
-            -p POSTGRES_DB="rbac" \
+            -e POSTGRES_USER="cl-user" \
+            -e POSTGRES_PASSWORD="cl-user-password" \
+            -e POSTGRES_DB="rbac" \
             -v "${{ github.workspace }}/src/init.sql:/docker-entrypoint-initdb.d/init.sql" \
             --health-cmd pg_isready \
             --health-interval 30s \
