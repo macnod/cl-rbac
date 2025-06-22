@@ -16,26 +16,40 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      pgtest:
-        image: postgres:16
-        env:
-          POSTGRES_USER: "cl-user"
-          POSTGRES_PASSWORD: "cl-user-password"
-          POSTGRES_DB: "rbac"
-        ports:
-          - "5433:5432"
-        volumes:
-          - "${{ github.workspace }}/src/init.sql:/docker-entrypoint-initdb.d/init.sql"
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 30s
-          --health-timeout 30s
-          --health-retries 5
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Start PostgreSQL container
+        run: |
+          docker run -d --name pgtest \
+            -p 5433:5432 \
+            -p POSTGRES_USER="cl-user" \
+            -p POSTGRES_PASSWORD="cl-user-password" \
+            -p POSTGRES_DB="rbac" \
+            -v "${{ github.workspace }}/src/init.sql:/docker-entrypoint-initdb.d/init.sql"
+            --health-cmd pg_isready \
+            --health-interval 30s \
+            --health-timeout 30s \
+            --health-retries 5
+            postgres:16
+
+            # Wait for PostgreSQL to be healthy
+            for i in {1..30}; do
+              if docker inspect --format='{{ .State.Health.Status }}' pgtest | grep -q "healthy"; then
+                echo "PostgreSQL is healthy"
+                break
+              fi
+              echo "Waiting for PostgreSQL to be healthy..."
+              sleep 2
+            done
+
+            # Fail if PostgreSQL never became healthy
+            if ! docker inspect --format='{{ .State.Health.Status }}' pgtest | grep -q "healthy"; then
+              echo "PostgreSQL failed to become healthy"
+              docker logs pgtest
+              exit 1
+            fi
 
       - name: Cache system packages
         id: cache-apt
