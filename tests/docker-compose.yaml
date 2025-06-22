@@ -1,0 +1,21 @@
+services:
+  rbac:
+    image: macnod/cl-rbac-test:latest
+    volumes:
+      - ../:/cl-rbac/
+    environment:
+      DATABASE_URL: "pgtest://cl-user:cl-user-password@pgtest:5432/"
+    command: >
+      ros run -- --load "/cl-rbac/tests/test-database.lisp"
+    depends_on:
+      - pgtest
+  pgtest:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: "cl-user"
+      POSTGRES_PASSWORD: "cl-user-password"
+      POSTGRES_DB: "rbac"
+    ports:
+      - "5433:5432"
+    volumes:
+      - ../src/init.sql:/docker-entrypoint-initdb.d/init.sql

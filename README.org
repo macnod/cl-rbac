@@ -1,0 +1,507 @@
+#+title CL-RBAC Documentation
+CL-RBAC is a Common Lisp implementation of a Role-Based Access Control (RBAC) system.
+
+* CL-RBAC/DATABASE
+This document describes the exported variables, classes, and functions from the =cl-rbac/database= package in the Common Lisp Role-Based Access Control (RBAC) system. The package provides functionality for managing an RBAC database with PostgreSQL, including user management, permissions, roles, resources, and auditing.
+
+** Overview
+The system consists of users, permissions, roles, and resources. Roles as associated with users and with permissions. Resources are associated with permissions. Thus, you can assign roles to a resource, then check if a user has some permission on that resource. If the resource is associated with a role that the user has, and that role has the given permission, then the check returns a T value, indicating that the user has the permission on the role.
+
+** Exported Variables
+*** *default-permissions*
+#+BEGIN_SRC lisp
+(defparameter *default-permissions* (list "create" "read" "update" "delete"))
+#+END_SRC
+A list of default permissions available in the RBAC system, including "create", "read", "update", and "delete".
+
+*** *default-roles*
+#+BEGIN_SRC lisp
+(defparameter *default-roles* (list "guest" "logged-in"))
+#+END_SRC
+A list of default roles assigned to new users, including "guest" and "logged-in".
+
+*** *email-regex*
+#+BEGIN_SRC lisp
+(defparameter *email-regex* "^[-a-zA-Z0-9._%+]+@[-a-zA-Z0-9.]+\\.[a-zA-Z]{2,}$")
+#+END_SRC
+A regular expression for validating email addresses, ensuring they have a proper format with a domain and at least a two-character top-level domain.
+
+*** *password-regexes*
+#+BEGIN_SRC lisp
+(defparameter *password-regexes* (list
+                                  "^[\\x00-\\x7f]+$"
+                                  "[a-zA-Z]"
+                                  "[-!@#$%^&*()\+={}[\]|:;<>,.?/~`]"
+                                  "[0-9]"))
+#+END_SRC
+A list of regular expressions for validating passwords. Passwords must contain ASCII characters, at least one letter, one digit, and one common punctuation character.
+
+*** *permission-regex*
+#+BEGIN_SRC lisp
+(defparameter *permission-regex* "^[a-z]([-a-z0-9_.+]*[a-z0-9])*(:[a-z]+)?$")
+#+END_SRC
+A regular expression for validating permission names, which must start with a letter, contain letters, digits, hyphens, underscores, or plus signs, and optionally include a colon followed by letters.
+
+*** *resource-regex*
+#+BEGIN_SRC lisp
+(defparameter *resource-regex* "^[a-z]([-a-z0-9_.+]*[a-z0-9])*(:[a-z]+)?$")
+#+END_SRC
+A regular expression for validating resource names, following the same format as permissions.
+
+*** *role-regex*
+#+BEGIN_SRC lisp
+(defparameter *role-regex* "^[a-z]([-a-z0-9_.+]*[a-z0-9])*(:[a-z]+)?$")
+#+END_SRC
+A regular expression for validating role names, following the same format as permissions.
+
+*** *username-regex*
+#+BEGIN_SRC lisp
+(defparameter *username-regex* "^[a-zA-Z][-a-zA-Z0-9_.+]*$")
+#+END_SRC
+A regular expression for validating usernames, which must start with a letter and contain only letters, digits, underscores, hyphens, periods, or plus signs.
+
+** Exported Classes
+*** rbac
+#+BEGIN_SRC lisp
+(defclass rbac () ()
+  (:documentation "Abstract base class for user database.
+  For auditing purposes, methods that update the database require an actor
+  parameter, which consists of a username that exists in the users database."))
+#+END_SRC
+An abstract base class for the RBAC database, requiring an actor parameter for auditing database updates.
+
+*** rbac-pg
+#+BEGIN_SRC lisp
+(defclass rbac-pg (rbac)
+  ((dbname :accessor dbname :initarg :dbname :initform "rbac")
+    (username :accessor username :initarg :username :initform "cl-user")
+    (password :accessor password :initarg :password :initform "")
+    (host :accessor host :initarg :host :initform "postgres")
+    (port :accessor port :initarg :port :initform 5432))
+  (:documentation "RBAC database class for PostgreSQL."))
+#+END_SRC
+A concrete class for managing an RBAC database with PostgreSQL, with slots for database name, username, password, host, and port.
+
+*** username
+Not explicitly defined in the provided code but exported, likely intended as an accessor or slot in another class.
+
+*** password
+Not explicitly defined in the provided code but exported, likely intended as an accessor or slot in another class.
+
+*** host
+Not explicitly defined in the provided code but exported, likely intended as an accessor or slot in another class.
+
+*** port
+Not explicitly defined in the provided code but exported, likely intended as an accessor or slot in another class.
+
+** Exported Functions
+*** rbac-query-single
+#+BEGIN_SRC lisp
+(defun rbac-query-single (sql-template-and-parameters)
+  "Converts SQL-TEMPLATE-AND-PARAMETERS into a query that returns a single
+value, and executes that query. SQL-TEMPLATE-AND-PARAMETERS is a list where the
+first element is an SQL string (optionally with placeholders) and the rest of
+the elements are the values that are used to replace the placeholders in the SQL
+string. This function needs to be called inside a with-rbac block."
+  ...)
+#+END_SRC
+Executes an SQL query that returns a single value, using a template with placeholders and corresponding parameter values.
+
+*** rbac-query
+#+BEGIN_SRC lisp
+(defun rbac-query (sql-template-and-parameters)
+  "Converts SQL-TEMPLATE-AND-PARAMETERS into a query that returns a list of
+rows, and executes that query. SQL-TEMPLATE-AND-PARAMETERS is a list where the
+first element is an SQL string (optionally with placeholders) and the rest of
+the elements are values that are used to replace the placeholders in the SQL
+string. This function needs to be called inside of a with-rbac block. Each
+row in the result is a plist, where the keys represent the field names."
+  ...)
+#+END_SRC
+Executes an SQL query that returns a list of rows as property lists, using a template with placeholders and corresponding parameter values.
+
+*** report-errors
+#+BEGIN_SRC lisp
+(defun report-errors (errors)
+  "If ERRORS is not NIL, this function signals an error with a message that
+consists the strings in ERRORS, separated by spaces."
+  ...)
+#+END_SRC
+Signals an error if the provided errors list is non-empty, combining error messages into a single string.
+
+*** usql
+#+BEGIN_SRC lisp
+(defun usql (sql)
+  "Converts SQL into a one-line string, removing extra spaces and newlines."
+  ...)
+#+END_SRC
+Converts an SQL string into a single-line string by removing extra spaces and newlines.
+
+*** sql-next-placeholder
+#+BEGIN_SRC lisp
+(defun sql-next-placeholder (sql)
+  "Returns the biggest placeholder in SQL. This is useful when generating
+SQL statements from base statements that already have placeholders, so that
+additional placeholders can be added without conflicting with the existing
+ones. If there are no placeholders in SQL, this function returns 1."
+  ...)
+#+END_SRC
+Returns the highest placeholder number in an SQL string, or 1 if none exist, to avoid conflicts when adding new placeholders.
+
+*** add-permission
+#+BEGIN_SRC lisp
+(defgeneric add-permission (rbac permission description actor)
+  (:documentation "Add a new permission and return its ID."))
+#+END_SRC
+Adds a new permission to the database with a name, description, and actor, returning the permission's ID.
+
+*** add-resource
+#+BEGIN_SRC lisp
+(defgeneric add-resource (rbac name description roles actor)
+  (:documentation "Add a new resource."))
+#+END_SRC
+Adds a new resource to the database with a name, description, associated roles, and actor, returning the resource's ID.
+
+*** add-resource-role
+#+BEGIN_SRC lisp
+(defgeneric add-resource-role (rbac resource role actor)
+  (:documentation "Add a role permission to a resource."))
+#+END_SRC
+Adds a role to a resource, associating the role with the resource for access control.
+
+*** add-role
+#+BEGIN_SRC lisp
+(defgeneric add-role (rbac role description exclusive permissions actor)
+  (:documentation "Add a new role."))
+#+END_SRC
+Adds a new role to the database with a name, description, exclusivity flag, associated permissions, and actor, returning the role's ID.
+
+*** add-role-permission
+#+BEGIN_SRC lisp
+(defgeneric add-role-permission (rbac role permission actor)
+  (:documentation "Add a permission to a role."))
+#+END_SRC
+Associates a permission with a role, enabling the role to grant that permission.
+
+*** add-role-user
+#+BEGIN_SRC lisp
+(defgeneric add-role-user (rbac role user actor)
+  (:documentation "Add a user to a role."))
+#+END_SRC
+Assigns a user to a role, granting the user the role's permissions.
+
+*** add-user
+#+BEGIN_SRC lisp
+(defgeneric add-user (rbac username email password roles actor)
+  (:documentation "Add a new user. This creates an exclusive role, which is
+for this user only, and adds the user to the guest and logged-in roles.
+Returns the new user's ID."))
+#+END_SRC
+Adds a new user to the database with a username, email, password, roles, and actor, creating an exclusive role and assigning default roles.
+
+*** get-id
+#+BEGIN_SRC lisp
+(defgeneric get-id (rbac table name)
+  (:documentation "Returns the ID associated with NAME in TABLE."))
+#+END_SRC
+Retrieves the ID for a given name in a specified table.
+
+*** get-permission-ids
+#+BEGIN_SRC lisp
+(defgeneric get-permission-ids (rbac permissions)
+  (:documentation "Returns a hash table where the keys consist of permission
+names and the values consist of permission IDs. If PERMISSIONS is NIL, the hash
+table contains all existing permissions and their IDs. Otherwise, if PERMISSIONS
+is not NIL, the hash table contains IDs for the permissions in PERMISSIONS only.
+If PERMISSIONS contains a permission that doesn't exist, this function signals
+an error."))
+#+END_SRC
+Returns a hash table mapping permission names to their IDs, either for specified permissions or all permissions.
+
+*** get-role-ids
+#+BEGIN_SRC lisp
+(defgeneric get-role-ids (rbac roles)
+  (:documentation "Returns a hash table where the keys consist of role names
+and the values consist of role IDs. If ROLES is NIL, the hash table contains
+all existing roles and their IDs. Otherwise, if ROLES is not NIL, the hash
+table contains IDs for the roles in ROLES only. If ROLES contains a role
+that doesn't exist, this function signals an error."))
+#+END_SRC
+Returns a hash table mapping role names to their IDs, either for specified roles or all roles.
+
+*** get-value
+#+BEGIN_SRC lisp
+(defgeneric get-value (rbac table field &rest search)
+  (:documentation "Retrieves the value from FIELD in TABLE where SEARCH points
+to a unique row. TABLE and FIELD are strings, and SEARCH is a series of field
+names and values that identify the row uniquely."))
+#+END_SRC
+Retrieves a specific field value from a table row identified by search criteria.
+
+*** list-permissions
+#+BEGIN_SRC lisp
+(defgeneric list-permissions (rbac page page-size)
+  (:documentation "List permissions, returning PAGE-SIZE permissions starting
+on page PAGE. PAGE starts at 1. PAGE-SIZE is an integer between 1 and 1000."))
+#+END_SRC
+Lists permissions with pagination, returning a specified number of permissions starting from a given page.
+
+*** list-resource-roles
+#+BEGIN_SRC lisp
+(defgeneric list-resource-roles (rbac resource page page-size)
+  (:documentation "List roles for a resource, returning PAGE-SIZE roles starting
+on page PAGE. PAGE starts at 1. PAGE-SIZE is an integer between 1 and 1000."))
+#+END_SRC
+Lists roles associated with a resource, with pagination.
+
+*** list-resources
+#+BEGIN_SRC lisp
+(defgeneric list-resources (rbac page page-size)
+  (:documentation "List resources, returning PAGE-SIZE resources starting on
+page PAGE. PAGE starts at 1. PAGE-SIZE is an integer between 1 and 1000."))
+#+END_SRC
+Lists resources with pagination.
+
+*** list-role-permissions
+#+BEGIN_SRC lisp
+(defgeneric list-role-permissions (rbac role page page-size)
+  (:documentation "List permissions for a role, returning PAGE-SIZE permissions
+starting on page PAGE. PAGE starts at 1. PAGE-SIZE is an integer between 1 and"))
+#+END_SRC
+Lists permissions associated with a role, with pagination.
+
+*** list-role-users
+#+BEGIN_SRC lisp
+(defgeneric list-role-users (rbac role page page-size)
+  (:documentation "List users for a role, returning PAGE-SIZE users starting
+on page PAGE. PAGE starts at 1. PAGE-SIZE is an integer between 1 and 1000."))
+#+END_SRC
+Lists users assigned to a role, with pagination.
+
+*** list-roles
+#+BEGIN_SRC lisp
+(defgeneric list-roles (rbac page page-size)
+  (:documentation "List roles, returning PAGE-SIZE roles starting on page PAGE.
+PAGE starts at 1. PAGE-SIZE is an integer between 1 and 1000."))
+#+END_SRC
+Lists roles with pagination.
+
+*** list-rows
+#+BEGIN_SRC lisp
+(defgeneric list-rows (rbac select-fields tables where-clauses values order-by-fields page page-size)
+  (:documentation "Returns a list of rows, with each row represented as a
+plist."))
+#+END_SRC
+Retrieves a list of rows from a database query, with specified fields, tables, conditions, and pagination.
+
+*** list-users
+#+BEGIN_SRC lisp
+(defgeneric list-users (rbac sort-by page page-size)
+  (:documentation "List users sorted by SORT-BY. Return PAGE-SIZE users starting
+from PAGE. SORT-BY is a list of fields, where each field string consists of the
+name of a field optionally followed by ASC or DESC. :PAGE is the page number,
+starting from 1, and PAGE-SIZE is an integer between 1 and 1000."))
+#+END_SRC
+Lists users with sorting and pagination.
+
+*** remove-permission
+#+BEGIN_SRC lisp
+(defgeneric remove-permission (rbac permission actor)
+  (:documentation "Remove (soft delete) PERMISSION from the database."))
+#+END_SRC
+Soft deletes a permission from the database.
+
+*** remove-resource
+#+BEGIN_SRC lisp
+(defgeneric remove-resource (rbac resource actor)
+  (:documentation "Remove (soft delete) RESOURCE from the database."))
+#+END_SRC
+Soft deletes a resource from the database.
+
+*** remove-resource-role
+#+BEGIN_SRC lisp
+(defgeneric remove-resource-role (rbac resource role actor)
+  (:documentation "Remove (soft delete) a role permission from a resource."))
+#+END_SRC
+Soft deletes a role from a resource.
+
+*** remove-role
+#+BEGIN_SRC lisp
+(defgeneric remove-role (rbac role actor)
+  (:documentation "Remove (soft delete) a role from the database."))
+#+END_SRC
+Soft deletes a role from the database.
+
+*** remove-role-permission
+#+BEGIN_SRC lisp
+(defgeneric remove-role-permission (rbac role permission actor)
+  (:documentation "Remove (soft delete) a permission from a role."))
+#+END_SRC
+Soft deletes a permission from a role.
+
+*** remove-role-user
+#+BEGIN_SRC lisp
+(defgeneric remove-role-user (rbac role user actor)
+  (:documentation "Remove (soft delete) a user from a role."))
+#+END_SRC
+Soft deletes a user from a role.
+
+*** remove-user
+#+BEGIN_SRC lisp
+(defgeneric remove-user (rbac username actor)
+  (:documentation "Remove (soft delete) USERNAME from the database."))
+#+END_SRC
+Soft deletes a user from the database.
+
+*** soft-delete
+#+BEGIN_SRC lisp
+(defgeneric soft-delete (rbac delete-target-sql delete-refs-sql details delete-exclusive-role-sql)
+  (:documentation "Executes the given SQL statements in a transaction, to soft
+delete a row and references to that row, updating the audit table."))
+#+END_SRC
+Performs a soft delete of a row and its references within a transaction, updating the audit log.
+
+*** sql-for-list
+#+BEGIN_SRC lisp
+(defgeneric sql-for-list (rbac select-fields tables where-clauses values order-by-fields page page-size)
+  (:documentation "Generates an SQL statement that selects a list of records,
+each containing SELECT-FIELDS, from TABLES. SELECT-FIELDS is a list of field
+names to select. TABLES is a table name, or a string representing the tables to
+select from, including any join SQL syntax. WHERE-CLAUSES is a list of
+conditions, in SQL syntax, that must all be true for a record to be selected.
+ORDER-BY-FIELDS is a list of field names to order the results by, with
+each string in the list optionally followed by a space and either ASC or
+DESC, to indicate the sort order. PAGE is the page number, starting from 1,
+and PAGE-SIZE is the number of records to return per page. It must be an
+integer between 1 and 1000. The SQL statement consists of a list with an
+SQL string followed by values that are used to replace the placeholders in
+the string. The generated SQL includes a WHERE clause that excludes deleted
+records, i.e. records where the deleted_at field is not null."))
+#+END_SRC
+Generates an SQL statement for selecting a list of records with specified fields, tables, conditions, sorting, and pagination.
+
+*** to-hash-table
+#+BEGIN_SRC lisp
+(defgeneric to-hash-table (rbac row)
+  (:documentation "Convert a row into a hash table where the table keys
+correspond to the field names and the table values correspond to the field
+values."))
+#+END_SRC
+Converts a database row into a hash table with field names as keys and field values as values.
+
+*** to-hash-tables
+#+BEGIN_SRC lisp
+(defgeneric to-hash-tables (rbac row)
+  (:documentation "Convert a list of rows representing the result of a
+database query from the :STR-ALISTS format into a list of hash tables where each
+hash table represents a row."))
+#+END_SRC
+Converts a list of database rows into a list of hash tables.
+
+*** user-allowed
+#+BEGIN_SRC lisp
+(defgeneric user-allowed (rbac username permission resource)
+  (:documentation "Determine if USER has PERMISSION on RESOURCE."))
+#+END_SRC
+Checks if a user has a specific permission on a resource.
+
+*** valid-description-p
+#+BEGIN_SRC lisp
+(defgeneric valid-description-p (rbac description)
+  (:documentation "Validates new DESCRIPTION string."))
+#+END_SRC
+Validates a description string, ensuring it is non-empty and within length limits.
+
+*** valid-email-p
+#+BEGIN_SRC lisp
+(defgeneric valid-email-p (rbac email)
+  (:documentation "Validates new EMAIL string. The string must look like an
+email address, with a proper domain name, and it must have a length that
+doesn't exceed 128 characters."))
+#+END_SRC
+Validates an email address string.
+
+*** valid-password-p
+#+BEGIN_SRC lisp
+(defgeneric valid-password-p (rbac password)
+  (:documentation "Validates new PASSWORD string.
+PASSWORD must have
+- at least 6 characters
+- at least one letter
+- at least one digit
+- at least one common punctuation character
+- at most 64 characters"))
+#+END_SRC
+Validates a password string against length and content requirements.
+
+*** valid-permission-p
+#+BEGIN_SRC lisp
+(defgeneric valid-permission-p (rbac permission)
+  (:documentation "Validates new PERMISSION string.
+PMERISSION must:
+- start with a letter
+- consist of letters, digits, and hyphens
+- optionally have a colon that is not at the beginning or the end
+- contain at most 64 characters"))
+#+END_SRC
+Validates a permission string against format and length requirements.
+
+*** valid-resource-p
+#+BEGIN_SRC lisp
+(defgeneric valid-resource-p (rbac resource)
+  (:documentation "Validates new RESOURCE string."))
+#+END_SRC
+Validates a resource string against format and length requirements.
+
+*** valid-role-p
+#+BEGIN_SRC lisp
+(defgeneric valid-role-p (rbac role)
+  (:documentation "Validates new ROLE string.
+ROLE must:
+- start with a letter
+- consist of letters, digits, and hyphens
+- have at most 64 characters
+- optionally have a colon that is not at the beginning or the end"))
+#+END_SRC
+Validates a role string against format and length requirements.
+
+*** valid-username-p
+#+BEGIN_SRC lisp
+(defgeneric valid-username-p (rbac username)
+  (:documentation "Validates new USERNANME string.
+  USERNAME must:
+  - Have at least 1 character
+  - Have at most 64 characters
+  - Start with a letter
+  - Contain only ASCII characters for
+    - letters (any case)
+    - digits
+    - underscores
+    - dashes
+    - periods
+    - plus sign (+)"))
+#+END_SRC
+Validates a username string against format and length requirements.
+
+** Exported Macros
+*** with-rbac
+#+BEGIN_SRC lisp
+(defmacro with-rbac ((rbac) &body body)
+  "Opens a connection (pooled) to the rbac database to execute BODY. There's
+no global connection, so this macro must be used wherever a connection is
+needed. The connection is closed after BODY is executed."
+  ...)
+#+END_SRC
+Opens a pooled database connection to execute the provided body, closing the connection afterward.
+
+*** check
+#+BEGIN_SRC lisp
+(defmacro check (errors condition &rest error-message-args)
+  "Evaluates CONDITION. If the return value of CONDITION is NIL, this function
+pushes an error message onto ERRORS. The error message is created by using
+the format function with the arguments in ERROR-MESSAGE-ARGS. This function
+returns the result of evaluating CONDITION, so that it can be used as part
+of setting a variable, for example."
+  ...)
+#+END_SRC
+Evaluates a condition and pushes an error message to the errors list if the condition is false, returning the condition's result.
