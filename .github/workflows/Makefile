@@ -4,7 +4,6 @@ ROSWELL_PREFIX=$(HOME)/.local
 ROSWELL=$(ROSWELL_PREFIX)/bin/ros
 ROSWELL_SRC_DIR=roswell
 ROSWELL_REPO=https://github.com/roswell/roswell.git
-DOCKER
 
 .PHONY: setup install-dependencies test
 
