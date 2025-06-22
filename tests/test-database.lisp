@@ -1,13 +1,21 @@
 (in-package :cl-user)
 
-(pushnew (truename "/cl-rbac/") asdf:*central-registry* :test #'equal)
-(asdf:load-system :cl-rbac)
-
 (require :prove)
 (require :cl-ppcre)
 (require :dc-eclectic)
 (require :dc-ds)
 (require :postmodern)
+
+(defun directory-exists-p (directory)
+  "Check if the directory exists."
+  (let ((path (probe-file directory)))
+    (and path (uiop:directory-pathname-p path))))
+
+(if (directory-exists-p "/cl-rbac")
+  (pushnew (truename "/cl-rbac/") asdf:*central-registry* :test #'equal)
+  (pushnew (truename ".") asdf:*central-registry* :test #'equal))
+
+(asdf:load-system :cl-rbac)
 
 (defpackage :test-database
   (:use :cl :prove)
