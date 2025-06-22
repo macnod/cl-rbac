@@ -1339,6 +1339,11 @@
     ;; Remove user's access by removing read permission from user's exclusive
     ;; role
     (a:remove-role-permission *rbac* exclusive-role main-permission actor)
+    ;; Fail on purpose
+    (ok (a:user-allowed *rbac* main-user main-permission resource)
+      (format nil "user ~a does not have ~a access to resource ~a"
+        main-user main-permission resource))
+    ;; Make sure user no longer has access
     (ok (not (a:user-allowed *rbac* main-user main-permission resource))
       (format nil "user ~a does not have ~a access to resource ~a"
         main-user main-permission resource))
