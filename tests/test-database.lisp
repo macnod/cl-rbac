@@ -1350,4 +1350,7 @@
     ;; Add read permissiobn back to user's exclusive role
     (a:add-role-permission *rbac* exclusive-role main-permission actor)))
     
-(finalize)
+(let ((result (finalize)))
+  (if result
+    (uiop:quit 0)
+    (uiop:quyit 1)))
