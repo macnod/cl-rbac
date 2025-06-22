@@ -1353,4 +1353,4 @@
 (let ((result (finalize)))
   (if result
     (uiop:quit 0)
-    (uiop:quyit 1)))
+    (uiop:quit 1)))
